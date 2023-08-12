@@ -12,6 +12,10 @@ export class PaymentWebhookDto {
   orderId: string;
 
   @IsNotEmpty()
+  @IsString()
+  transactionId: string;
+
+  @IsNotEmpty()
   @IsEnum(PaymentStatus)
   status: string;
 

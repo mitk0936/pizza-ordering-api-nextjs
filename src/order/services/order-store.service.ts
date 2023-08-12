@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Order } from '../entities/order.entity';
+import { Order, OrderStatus } from '../entities/order.entity';
 
 @Injectable()
 export class OrderStoreService {
@@ -15,6 +15,11 @@ export class OrderStoreService {
       throw new NotFoundException(`Order with ID ${orderId} not found`);
     }
     return order;
+  }
+
+  findByStatus(status: OrderStatus): Order[] {
+    const orders = this.orders.filter((order) => order.status === status);
+    return orders;
   }
 
   save(order: Order): Order {

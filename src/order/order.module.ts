@@ -13,12 +13,16 @@ import { TakeOrderInKitchenHandler } from './handlers/take-order-in-kitchen/take
 import { TakeOrderForDeliveryCommandHandler } from './handlers/take-order-for-delivery/take-order-for-delivery.hanlder';
 import { SetOrderReadyForDeliveryCommandHandler } from './handlers/set-order-ready-for-delivery/set-order-ready-for-delivery.handler';
 import { CompleteOrderCommandHandler } from './handlers/complete-order/complete-order.handler';
+import { OrderStoreService } from './services/order-store.service';
+import { OrderStateMachineService } from './services/order-state-transitions.service';
 
 @Module({
   imports: [CqrsModule, ProductModule],
   controllers: [OrderController],
   providers: [
     OrderService,
+    OrderStoreService,
+    OrderStateMachineService,
     // handlers
     ValidateCartHandler,
     PlaceOrderHandler,
@@ -30,6 +34,6 @@ import { CompleteOrderCommandHandler } from './handlers/complete-order/complete-
     TakeOrderForDeliveryCommandHandler,
     CompleteOrderCommandHandler,
   ],
-  exports: [OrderService],
+  exports: [OrderService, OrderStoreService],
 })
 export class OrderModule {}

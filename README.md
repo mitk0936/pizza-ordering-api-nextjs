@@ -1,73 +1,140 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="200" alt="Nest Logo" /></a>
-</p>
+# Backend API for pizza (food product) ordering
+## Written in NodeJs, using the NestJS framework
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+The API does not contain authorization, typically it should provide some role based authentication for the different endpoints consumed by clients of different types:
+  - end site clients
+  - chef clients
+  - delivery people
+  - 3rd party payment provider(s)
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master" target="_blank"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9" alt="Coverage" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+Prerequistes:
+- Node 16 installed
+- To run locally, first run `npm i` then `npm start`
 
-## Description
+The codebase consists 3 NestJS modules
+- **Order Module** - Keeping the main functionality of maintaining orders, creating, updating, storing (in memory)
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+- **Payments Module** - Currently containing an endpoint (webhook) to be connected with external payment provider
+ 
+- **Product Module** - Providing mocked data for available products
 
-## Installation
 
-```bash
-$ npm install
+The API covers the following scenario:
+
+1. The client fetches available products via
+`GET /product/all`
+
+```
+curl http://localhost:3000/product/all
 ```
 
-## Running the app
+2. The client is able to validate a cart with selected products (could contain more than 1 product of a type)
 
-```bash
-# development
-$ npm run start
+`POST /order/validate-cart`
+```
+curl -X POST "http://localhost:3000/order/validate-cart" -H "Content-Type: application/json" -d '{
+  "productIds": ["1", "2"],
+  "currency": "EUR"
+}'
+```
+In case of client passed products that are not available, the response will contain only the valid products and total price calculated.
 
-# watch mode
-$ npm run start:dev
+3. Placing an actual order by the client\
 
-# production mode
-$ npm run start:prod
+`POST /order`
+```
+curl -X POST http://localhost:3000/order -H "Content-Type: application/json" -d '{
+  "productIds": ["1", "2"],
+  "clientPhoneNumber": "+359884838123",
+  "deliveryAddress": {
+    "latitude": 52.5200,
+    "longitude": 13.4050
+  }
+}'
 ```
 
-## Test
+At this point the order is in `status: ProcessingPayment`
 
-```bash
-# unit tests
-$ npm run test
+The response contains an `orderId`, which potentially can be passed to a 3rd party payment provider for validating a transaction.
 
-# e2e tests
-$ npm run test:e2e
+4. 3rd Party Payment provider confirms to the API that a particular order payment is successfull or unsuscessfull.
 
-# test coverage
-$ npm run test:cov
+`POST /payments/webhook`
+```
+curl -X POST http://localhost:3000/payments/webhook -H "Content-Type: application/json" -d '{
+  "orderId": "[ORDER_ID]",
+  "transactionId": "xyz-123",
+  "status": "success",
+  "amount": 123,
+  "currency": "EUR",
+  "timestamp": 1691844919926
+}'
+```
+status could be "fail"
+
+At this point the order is in `status: Paid`
+
+5. The API provides a way for chef clients to get orders by status
+
+`GET /order/by-status/Paid`
+```
+curl -X GET http://localhost:3000/order/by-status/Paid
 ```
 
-## Support
+6. To update order `status: Cooking`
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+```
+curl -X PATCH http://localhost:3000/order/{ORDER_ID}/kitchen-process
+```
 
-## Stay in touch
+7. To set order to `status: ReadyForDelivery`
+```
+curl -X PATCH http://localhost:3000/order/{ORDER_ID}/ready-for-delivery
+```
 
-- Author - [Kamil Myśliwiec](https://kamilmysliwiec.com)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+8. Allows Delivery clients to get orders by `status: ReadyForDelivery`
+```
+curl -X GET http://localhost:3000/order/by-status/ReadyForDelivery
+```
 
-## License
+9. To mark order `status: Delivering`
+```
+curl -X PATCH http://localhost:3000/order/{ORDER_ID}/start-delivery
+```
 
-Nest is [MIT licensed](LICENSE).
+10. And to complete an order `status: Completed`
+```
+curl -X PATCH http://localhost:3000/order/{ORDER_ID}/complete
+```
+
+The Order status is defined by the following enum:
+```
+export enum OrderStatus {
+  ProcessingPayment = 'ProcessingPayment',
+  Paid = 'Paid',
+  FailedPayment = 'FailedPayment',
+  Cooking = 'Cooking',
+  ReadyForDelivery = 'ReadyForDelivery',
+  Delivering = 'Delivering',
+  Completed = 'Completed',
+}
+```
+
+This status operates like a state machine with the following possible transitions:
+
+`ProcessingPayment` can transition to `Paid`, `FailedPayment`
+
+`Paid` can transition to `Cooking`
+
+`Cooking` can transition to `ReadyForDelivery`
+
+`ReadyForDelivery` can transition to `Delivering`
+
+`Delivering` can transition to `Completed`
+
+11. The API also provides an endpoint to get an Order data by id:
+
+`GET /order/:id`
+```
+curl -X GET http://localhost:3000/order/{ORDER_ID}
+```

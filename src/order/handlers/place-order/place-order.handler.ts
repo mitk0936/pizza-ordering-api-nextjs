@@ -2,6 +2,7 @@ import { BadRequestException } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { PlaceOrderCommand } from 'src/order/commands/place-order.command';
 import { Order } from 'src/order/entities/order.entity';
+import { OrderStoreService } from 'src/order/services/order-store.service';
 import { OrderService } from 'src/order/services/order.service';
 import { ProductDto } from 'src/product/dto/product.dto';
 import { ProductService } from 'src/product/services/product.service';
@@ -10,6 +11,7 @@ import { ProductService } from 'src/product/services/product.service';
 export class PlaceOrderHandler implements ICommandHandler<PlaceOrderCommand> {
   constructor(
     private readonly orderService: OrderService,
+    private readonly orderStoreService: OrderStoreService,
     private readonly productService: ProductService,
   ) {}
 
@@ -26,9 +28,11 @@ export class PlaceOrderHandler implements ICommandHandler<PlaceOrderCommand> {
         totalPrice,
       });
 
+      this.orderStoreService.save(order);
+
       return order;
     }
 
-    throw new BadRequestException('Provided products are not available');
+    throw new BadRequestException('Provided products are not available.');
   }
 }

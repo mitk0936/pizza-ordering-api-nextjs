@@ -9,12 +9,12 @@ export class ProductService {
   }
 
   getAvailableProductsByIds(ids: string[]): ProductDto[] {
-    const availableProductIds = ids.reduce((all: ProductDto[], id) => {
+    const availableProducts = ids.reduce((all: ProductDto[], id) => {
       const product = PRODUCTS.find((product) => id === product.id);
 
       return product ? [...all, product] : all;
     }, []);
 
-    return availableProductIds;
+    return availableProducts;
   }
 }

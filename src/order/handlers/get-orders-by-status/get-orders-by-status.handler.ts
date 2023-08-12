@@ -1,15 +1,14 @@
 import { QueryHandler, IQueryHandler } from '@nestjs/cqrs';
-import { OrderService } from 'src/order/services/order.service';
 import { GetOrdersByStatusQuery } from 'src/order/queries/get-orders-by-status.query';
+import { OrderStoreService } from 'src/order/services/order-store.service';
 
 @QueryHandler(GetOrdersByStatusQuery)
 export class GetOrdersByStatus
   implements IQueryHandler<GetOrdersByStatusQuery>
 {
-  constructor(private readonly orderService: OrderService) {}
+  constructor(private readonly orderStoreService: OrderStoreService) {}
 
   async execute(query: GetOrdersByStatusQuery) {
-    console.log('EXEC', { query });
-    return this.orderService.findOrdersByStatus(query.status);
+    return this.orderStoreService.findByStatus(query.status);
   }
 }

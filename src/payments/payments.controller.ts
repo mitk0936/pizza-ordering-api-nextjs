@@ -10,15 +10,20 @@ export class PaymentsController {
   constructor(private readonly eventBus: EventBus) {}
 
   @Post('webhook')
-  handlePaymentWebhook(@Body() payload: PaymentWebhookDto) {
+  handlePaymentWebhook(@Body() payload: PaymentWebhookDto): PaymentWebhookDto {
     const orderStatus: OrderStatus = Boolean(
       payload.status === PaymentStatus.Success,
     )
       ? OrderStatus.Paid
       : OrderStatus.FailedPayment;
 
+    // Probably save transactionId and orderId relation somewhere
+
+    // Probably need to check if the order exists, and the amount is same
     this.eventBus.publish(
       new OrderStatusUpdatedEvent(payload.orderId, orderStatus),
     );
+
+    return payload;
   }
 }
